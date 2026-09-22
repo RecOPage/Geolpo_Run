@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validRecord(data) {
+      return data.keys().hasAll([
+          'id', 'grade', 'classNum', 'studentNum', 'laps',
+          'lapLengthMeters', 'distance', 'date', 'timestamp', 'displayTime'
+        ])
+        && data.keys().hasOnly([
+          'id', 'grade', 'classNum', 'studentNum', 'laps',
+          'lapLengthMeters', 'distance', 'date', 'timestamp', 'displayTime'
+        ])
+        && data.id is string
+        && data.id.size() <= 64
+        && data.grade is int && data.grade >= 1 && data.grade <= 6
+        && data.classNum is int && data.classNum >= 1 && data.classNum <= 20
+        && data.studentNum is int && data.studentNum >= 1 && data.studentNum <= 60
+        && data.laps is int && data.laps >= 1 && data.laps <= 30
+        && data.lapLengthMeters is int && data.lapLengthMeters >= 50 && data.lapLengthMeters <= 1000
+        && data.distance == data.laps * data.lapLengthMeters
+        && data.date is string && data.date.size() == 10
+        && data.timestamp is string && data.timestamp.size() <= 40
+        && data.displayTime is string && data.displayTime.size() <= 30;
+    }
+
+    match /running_records/{recordId} {
+      // 로그인 없이 학생 입력과 관리자 화면을 운영하는 간편 모드입니다.
+      allow read: if true;
+      allow create: if recordId == request.resource.data.id
+                    && validRecord(request.resource.data);
+      allow update: if recordId == request.resource.data.id
+                    && validRecord(request.resource.data);
+      allow delete: if true;
+    }
+  }
+}
