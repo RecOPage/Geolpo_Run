@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>걸포 Run - 건강체력 달리기</title>
+  
+  <!-- Pretendard 웹폰트 -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <!-- Firebase SDK (클라우드 DB 실시간 연동용) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- 스타일시트 -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- [A 영역] 학교 & 프로그램 헤더 바 -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand-area">
+        <img src="마크.png" onerror="this.onerror=null; this.src='logo.png';" alt="걸포초 마크" class="school-logo-img">
+        <div class="brand-title-group">
+          <div class="brand-title">
+            <span class="brand-name">걸포 Run</span>
+            <span class="brand-badge">RAS 챌린지</span>
+          </div>
+          <span class="brand-sub">김포걸포초등학교 건강 달리기</span>
+        </div>
+      </div>
+      <button id="btn-open-admin" class="admin-btn" title="선생님 전용 관리 페이지">
+        <span>관리자</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 메인 앱 컨테이너 -->
+  <main class="app-container">
+
+    <!-- ==============================================
+         [화면 1] 메인 화면 (Main Screen)
+         A - 학교 & 프로그램이름
+         B - '반별등수'
+         [ ]학년 [ ]반 [ ]번 입력창 & [입력하기] 버튼
+         ============================================== -->
+    <section id="screen-main" class="app-screen active">
+
+      <!-- [B 영역] 반별등수 카드 -->
+      <div class="card ranking-card">
+        <div class="card-section-header">
+          <div class="section-title-wrap">
+            <span class="section-badge">실시간 순위</span>
+            <h2 class="card-main-title">반별 등수</h2>
+          </div>
+          <span class="ranking-refresh-time" id="ranking-updated-time">실시간 집계 중</span>
+        </div>
+        
+        <!-- 반별 등수 실시간 랭킹 리스트 (JS 렌더링) -->
+        <div id="ranking-list-container" class="ranking-board">
+          <!-- 학급별 랭킹 아이템이 동적으로 들어옵니다 -->
+        </div>
+      </div>
+
+      <!-- [입력 영역] 학년 / 반 / 번호 & 입력하기 버튼 카드 -->
+      <div class="card student-entry-card">
+        <div class="card-sub-header">
+          <span class="entry-guide-text">기록할 학생의 학년, 반, 번호를 입력하세요</span>
+        </div>
+
+        <div class="sketch-input-group">
+          <div class="sketch-field">
+            <input type="number" id="student-grade" class="sketch-box-input" min="1" max="6" placeholder="" inputmode="numeric">
+            <span class="sketch-unit-label">학년</span>
+          </div>
+
+          <div class="sketch-field">
+            <input type="number" id="student-class" class="sketch-box-input" min="1" max="20" placeholder="" inputmode="numeric">
+            <span class="sketch-unit-label">반</span>
+          </div>
+
+          <div class="sketch-field">
+            <input type="number" id="student-num" class="sketch-box-input" min="1" max="60" placeholder="" inputmode="numeric">
+            <span class="sketch-unit-label">번</span>
+          </div>
+        </div>
+
+        <!-- [입력하기] 버튼 -->
+        <button id="btn-go-second" class="sketch-submit-btn" type="button">
+          <span>입력하기</span>
+        </button>
+
+        <div class="privacy-note">
+          <span>학생 이름 등 개인정보는 수집하지 않습니다.</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==============================================
+         [화면 2] Second 화면 (Second Screen)
+         x 바퀴 입력 후 저장 -끝-
+         ============================================== -->
+    <section id="screen-second" class="app-screen" style="display: none;">
+      
+      <div class="card second-entry-card">
+        <!-- 상단 뒤로가기 및 학생 안내 배지 -->
+        <div class="second-header-bar">
+          <button id="btn-back-to-main" class="btn-back" type="button">
+            <span>← 메인 화면</span>
+          </button>
+          <div id="second-student-badge" class="current-student-badge">
+            3학년 1반 15번 학생
+          </div>
+        </div>
+
+        <div class="second-body">
+          <div class="lap-input-title">오늘 뛴 운동장 바퀴 수를 입력하세요</div>
+
+          <!-- 스케치의 [    ] 바퀴 입력 박스 -->
+          <div class="lap-main-box-row">
+            <input type="number" id="lap-count-input" class="lap-sketch-input" min="1" max="30" value="1" inputmode="numeric">
+            <span class="lap-sketch-unit">바퀴</span>
+          </div>
+
+          <!-- 바퀴 조절 보조 스텝 버튼 (+/-) -->
+          <div class="lap-stepper-row">
+            <button id="btn-decrease-lap" class="stepper-action-btn" type="button" aria-label="바퀴 감소">−</button>
+            <button id="btn-increase-lap" class="stepper-action-btn" type="button" aria-label="바퀴 증가">+</button>
+          </div>
+
+          <!-- 원터치 빠른 선택 퀵 바퀴 칩 -->
+          <div class="quick-chip-grid">
+            <button type="button" class="chip-btn active" data-laps="1">1바퀴</button>
+            <button type="button" class="chip-btn" data-laps="2">2바퀴</button>
+            <button type="button" class="chip-btn" data-laps="3">3바퀴</button>
+            <button type="button" class="chip-btn" data-laps="5">5바퀴</button>
+            <button type="button" class="chip-btn" data-laps="10">10바퀴</button>
+          </div>
+
+          <!-- 예상 달린 거리 안내 -->
+          <div id="distance-preview" class="distance-preview-banner">
+            예상 거리: <span class="distance-highlight">150 m</span> 달리기 (운동장 1바퀴 = 150m)
+          </div>
+
+          <!-- 스케치의 [ 확 인 ] 버튼 -->
+          <button id="btn-confirm-record" class="sketch-confirm-btn" type="button">
+            <span>확  인</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- [모달 1] 달리기 기록 완료 팝업 -->
+  <div id="modal-result" class="modal-overlay">
+    <div class="modal-content" style="text-align: center;">
+      <div class="result-check-mark" aria-hidden="true">✓</div>
+      <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+        기록이 성공적으로 저장되었습니다!
+      </h3>
+      <p id="result-summary-text" style="font-size: 0.98rem; color: var(--text-muted); margin-bottom: 16px;">
+        오늘도 멋지게 달렸어요!
+      </p>
+      <div class="result-record-summary">
+        <div class="result-record-row">
+          <span class="result-record-label">오늘 뛴 기록</span>
+          <strong id="result-today-total">1바퀴 · 150m</strong>
+        </div>
+        <div class="result-record-row result-record-alltime">
+          <span class="result-record-label">지금까지 누적</span>
+          <strong id="result-alltime-total">1바퀴 · 150m</strong>
+        </div>
+      </div>
+      <button id="btn-close-result" class="sketch-confirm-btn" style="height: 48px;">
+        확인
+      </button>
+    </div>
+  </div>
+
+  <!-- [모달 2] 관리자 인증 모달 -->
+  <div id="modal-admin-auth" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">선생님 관리자 인증</h3>
+        <button id="btn-close-admin-auth" class="modal-close-btn">&times;</button>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+        기록 수정, 삭제 및 엑셀 다운로드를 위해 관리자 CODE를 입력해주세요.
+      </p>
+      <div style="margin-bottom: 16px;">
+        <input type="password" id="admin-code-input" class="text-input" placeholder="관리자 비밀번호 입력" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;">
+        <div id="admin-auth-error" style="color: var(--danger); font-size: 0.82rem; margin-top: 6px; display: none; text-align: center;"></div>
+      </div>
+      <button id="btn-submit-admin-code" class="submit-btn" style="height: 48px;">
+        로그인
+      </button>
+    </div>
+  </div>
+
+  <!-- [모달 3] 관리자 전용 대시보드 모달 (전체화면형) -->
+  <div id="modal-admin-dashboard" class="modal-overlay">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; display: flex; flex-direction: column;">
+      
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-light); padding-bottom: 14px;">
+        <div>
+          <h3 class="modal-title">달리기 기록 관리 대시보드</h3>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">오입력 수정 / 삭제 및 엑셀 내보내기</span>
+        </div>
+        <button id="btn-close-admin-dashboard" class="modal-close-btn">&times;</button>
+      </div>
+
+      <div style="overflow-y: auto; padding-top: 14px; flex: 1;">
+        
+        <!-- 상단 통계 수치 -->
+        <div class="stats-summary-grid">
+          <div class="stat-box">
+            <div class="stat-box-title">선택 조건 기록 건수</div>
+            <div id="admin-total-records" class="stat-box-value">0건</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-title">총 달린 바퀴 수</div>
+            <div id="admin-total-laps" class="stat-box-value">0바퀴</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-title">총 누적 거리</div>
+            <div id="admin-total-km" class="stat-box-value">0.00 km</div>
+          </div>
+        </div>
+
+        <!-- 필터 및 버튼 바 -->
+        <div class="admin-card-header">
+          <div class="filter-bar" style="margin-bottom: 0; flex: 1;">
+            <input type="date" id="admin-filter-date" class="filter-date">
+            <select id="admin-filter-grade" class="filter-select">
+              <option value="">전체 학년</option>
+              <option value="1">1학년</option>
+              <option value="2">2학년</option>
+              <option value="3">3학년</option>
+              <option value="4">4학년</option>
+              <option value="5">5학년</option>
+              <option value="6">6학년</option>
+            </select>
+            <input type="number" id="admin-filter-class" class="filter-select" placeholder="반(전체)" min="1" max="20">
+          </div>
+          <div class="admin-actions">
+            <button id="btn-export-csv" class="btn-secondary" title="엑셀로 다운로드">
+              <span>엑셀(CSV) 다운로드</span>
+            </button>
+            <button id="btn-open-settings" class="btn-secondary" title="환경 설정">
+              <span>설정</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 기록 데이터 테이블 -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>학생</th>
+                <th>기록</th>
+                <th>일시</th>
+                <th style="text-align: right;">관리</th>
+              </tr>
+            </thead>
+            <tbody id="admin-records-tbody">
+              <!-- JS로 기록 목록 동적 생성 -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 4] 기록 수정 모달 -->
+  <div id="modal-edit-record" class="modal-overlay">
+    <div class="modal-content" style="max-width: 380px;">
+      <div class="modal-header">
+        <h3 class="modal-title">기록 수정</h3>
+        <button id="btn-close-edit" class="modal-close-btn">&times;</button>
+      </div>
+      <p id="edit-student-info" style="font-weight: 700; margin-bottom: 12px; color: var(--primary);">
+        3학년 2반 15번
+      </p>
+      <div style="margin-bottom: 18px;">
+        <label class="field-label" for="edit-laps-input">달린 바퀴 수</label>
+        <input type="number" id="edit-laps-input" class="text-input" min="1" max="30">
+      </div>
+      <button id="btn-save-edit" class="submit-btn" style="height: 44px;">
+        수정 내용 저장
+      </button>
+    </div>
+  </div>
+
+  <!-- [모달 5] 관리자 환경 설정 모달 -->
+  <div id="modal-admin-settings" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">프로그램 환경 설정</h3>
+        <button id="btn-close-settings" class="modal-close-btn">&times;</button>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label class="field-label" for="setting-lap-meters">운동장 1바퀴 기본 거리 (미터)</label>
+        <input type="number" id="setting-lap-meters" class="text-input" placeholder="150" value="150">
+        <span style="font-size: 0.78rem; color: var(--text-muted);">예: 150m, 200m 등 학교 운동장 트랙 규격에 맞게 설정</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="field-label" for="setting-new-code">관리자 CODE (비밀번호 변경)</label>
+        <input type="text" id="setting-new-code" class="text-input" placeholder="1378">
+      </div>
+
+      <button id="btn-save-settings" class="submit-btn" style="height: 46px;">
+        설정 저장하기
+      </button>
+    </div>
+  </div>
+
+  <!-- 스크립트 연결 -->
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
