@@ -123,7 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         rankingContainer.replaceChildren();
         const empty = document.createElement('div');
         empty.className = 'ranking-empty-box';
-        empty.textContent = '아직 등록된 달리기 기록이 없습니다. 아래에서 학년, 반, 번호를 입력하고 우리 반의 첫 번째 달리기 기록을 남겨보세요.';
+        const emptyTitle = document.createElement('strong');
+        emptyTitle.textContent = '아직 등록된 달리기 기록이 없습니다.';
+        const emptyGuide = document.createElement('span');
+        emptyGuide.textContent = '아래에서 우리 반의 첫 기록을 남겨보세요.';
+        empty.append(emptyTitle, emptyGuide);
         rankingContainer.appendChild(empty);
         return;
       }
